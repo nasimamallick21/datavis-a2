@@ -3,3 +3,73 @@ body {
 }
 
 /* YOUR CSS CODE GOES HERE */
+
+body {
+    font-family: sans-serif;
+    margin: 20px;
+}
+
+.container {
+    display: flex;
+    flex-direction: row; 
+    justify-content: space-around;
+    align-items: flex-start; /* Aligns items to top */
+}
+
+#scatterplot {
+    border: 1px solid #ccc;
+    padding: 10px;
+    background: #fff;
+}
+
+#details-panel {
+    border: 1px solid #ccc;
+    padding: 20px;
+    width: 350px;
+    background: #fdfdfd;
+    text-align: center;
+    min-height: 500px; /* Keeps panel same height as chart */
+}
+
+/* -- TEXT DETAILS STYLING -- */
+#text-details h4 {
+    margin-top: 0;
+    color: #333;
+}
+
+.hint {
+    color: #888;
+    font-style: italic;
+    margin-top: 50px;
+}
+
+/* -- SCATTERPLOT DOTS -- */
+circle {
+    opacity: 0.7;
+    cursor: pointer;
+    stroke: none;
+    transition: all 0.2s;
+}
+
+circle:hover {
+    opacity: 1;
+    stroke: #333;
+    stroke-width: 1px;
+}
+
+.selected {
+    opacity: 1;
+    stroke: black;
+    stroke-width: 3px;
+}
+
+/* -- STAR PLOT -- */
+.star-path {
+    stroke-width: 2px;
+    fill-opacity: 0.4;
+}
+
+.axis-line {
+    stroke: #ddd;
+    stroke-width: 1px;
+}
