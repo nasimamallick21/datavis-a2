@@ -2,8 +2,7 @@
 window.onload = () => {
 
   // YOUR CODE GOES HERE
-  console.log("YOUR CODE GOES HERE");
-// --- 1. SETUP DIMENSIONS ---
+  // --- 1. SETUP DIMENSIONS ---
     const width = 600;
     const height = 500;
     const margin = { top: 40, right: 150, bottom: 60, left: 60 };
@@ -20,17 +19,21 @@ window.onload = () => {
     // --- 2. LOAD DATA ---
     d3.csv("cars.csv").then(data => {
         
-        // Data Conversion
+        // Data Conversion: Parse numbers from strings
         data.forEach(d => {
             d.Price = +d["Retail Price"];
             d.HP = +d["Horsepower(HP)"];
             d.CityMPG = +d["City Miles Per Gallon"];
             d.Weight = +d["Weight"];
             d.Engine = +d["Engine Size (l)"];
-            // We keep specific keys for the text display
             d.DealerCost = +d["Dealer Cost"];
-            d.Cyl = +d["Cyl"];
+            d.AWD = +d["AWD"];
+            d.RWD = +d["RWD"];
         });
+
+        // SPECIAL: Get a list of all unique Car Types for the "Type" axis
+        // We need this to map text ("Sedan", "SUV") to numbers (0, 1, 2...)
+        const allTypes = Array.from(new Set(data.map(d => d.Type))).sort();
 
         // --- 3. SCALES ---
         const xScale = d3.scaleLinear()
@@ -79,7 +82,7 @@ window.onload = () => {
         circles.on("click", function(d) {
             circles.classed("selected", false);
             d3.select(this).classed("selected", true);
-            updateDetails(d); // Call the combined update function
+            updateDetails(d); 
         });
 
         // --- 7. LEGEND ---
@@ -98,13 +101,14 @@ window.onload = () => {
             
             // A. UPDATE TEXT DETAILS
             const textContainer = d3.select("#text-details");
-            
-            // Using "Type" because "Origin" is not in the dataset
             const htmlContent = `
                 <h4>${car.Name}</h4>
                 <div style="font-size: 14px; line-height: 1.6;">
-                    Type: <b>${car.Type}</b> | Price: <b>$${car.Price}</b> | Dealer Cost: <b>$${car.DealerCost}</b><br>
-                    Engine: <b>${car.Engine}L</b> (${car.Cyl} Cylinders) | HP: <b>${car.HP}</b> | MPG: <b>${car.CityMPG}</b>
+                    Type: <b>${car.Type}</b><br>
+                    AWD: <b>${car.AWD}</b> | RWD: <b>${car.RWD}</b><br>
+                    Retail Price: <b>$${car.Price}</b><br>
+                    Dealer Cost: <b>$${car.DealerCost}</b><br>
+                    Engine Size: <b>${car.Engine}L</b>
                 </div>
                 <hr>
             `;
@@ -121,20 +125,36 @@ window.onload = () => {
                 .append("g")
                 .attr("transform", `translate(${w/2},${h/2})`);
 
-            const features = ["HP", "Price", "CityMPG", "Weight", "Engine"];
+            // The 6 attributes requested (including Type)
+            const starFeatures = [
+                { key: "Type", label: "Type" }, // Added Type here
+                { key: "AWD", label: "AWD" },
+                { key: "RWD", label: "RWD" },
+                { key: "Price", label: "Retail Price" },
+                { key: "DealerCost", label: "Dealer Cost" },
+                { key: "Engine", label: "Engine Size" }
+            ];
             
             // Scales for Star Plot
             const scales = {};
-            features.forEach(f => {
-                scales[f] = d3.scaleLinear()
-                    .domain([0, d3.max(data, d => d[f])])
-                    .range([0, radius]);
+            starFeatures.forEach(f => {
+                if (f.key === "Type") {
+                    // Special scale for Type (Categorical -> Number)
+                    scales[f.key] = d3.scaleLinear()
+                        .domain([0, allTypes.length - 1])
+                        .range([0, radius]);
+                } else {
+                    // Standard scale for numbers
+                    scales[f.key] = d3.scaleLinear()
+                        .domain([0, d3.max(data, d => d[f.key])])
+                        .range([0, radius]);
+                }
             });
 
-            const angleSlice = (Math.PI * 2) / features.length;
+            const angleSlice = (Math.PI * 2) / starFeatures.length;
 
             // Draw Axes
-            features.forEach((f, i) => {
+            starFeatures.forEach((f, i) => {
                 const angle = i * angleSlice - Math.PI/2;
                 const x = Math.cos(angle) * radius;
                 const y = Math.sin(angle) * radius;
@@ -145,15 +165,24 @@ window.onload = () => {
 
                 svgStar.append("text")
                     .attr("x", x * 1.2).attr("y", y * 1.2)
-                    .text(f)
+                    .text(f.label)
                     .style("font-size", "11px")
                     .style("text-anchor", "middle");
             });
 
             // Draw Shape
-            const coords = features.map((f, i) => {
+            const coords = starFeatures.map((f, i) => {
                 const angle = i * angleSlice - Math.PI/2;
-                const r = scales[f](car[f]);
+                let val;
+
+                // Handle Type specially (convert string to index number)
+                if (f.key === "Type") {
+                    val = allTypes.indexOf(car.Type);
+                } else {
+                    val = car[f.key];
+                }
+
+                const r = scales[f.key](val);
                 return { x: Math.cos(angle)*r, y: Math.sin(angle)*r };
             });
 
