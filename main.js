@@ -2,13 +2,15 @@
 window.onload = () => {
 
   // YOUR CODE GOES HERE
-  // --- 1. SETUP DIMENSIONS ---
+
+  // 1. Define Dimensions for Scatterplot
     const width = 600;
     const height = 500;
     const margin = { top: 40, right: 150, bottom: 60, left: 60 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
+     // 2. Select the HTML container and add the SVG for Scatterplot
     const svg = d3.select("#scatterplot")
         .append("svg")
         .attr("width", width)
@@ -16,10 +18,11 @@ window.onload = () => {
         .append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    // --- 2. LOAD DATA ---
+    // 3. Load the data set
     d3.csv("cars.csv").then(data => {
         
-        // Data Conversion: Parse numbers from strings
+        // --- PRE-PROCESSING DATA ---
+        // Convert string numbers (e.g., "200") to actual numbers
         data.forEach(d => {
             d.Price = +d["Retail Price"];
             d.HP = +d["Horsepower(HP)"];
@@ -31,33 +34,39 @@ window.onload = () => {
             d.RWD = +d["RWD"];
         });
 
-        // SPECIAL: Get a list of all unique Car Types for the "Type" axis
+        // Creating a list of all unique Car Types for the "Type" axis
         // We need this to map text ("Sedan", "SUV") to numbers (0, 1, 2...)
         const allTypes = Array.from(new Set(data.map(d => d.Type))).sort();
 
         // --- 3. SCALES ---
+        // X Scale: Horsepower
         const xScale = d3.scaleLinear()
             .domain([0, d3.max(data, d => d.HP)])
             .range([0, innerWidth]);
 
+        // Y Scale: Retail Price
         const yScale = d3.scaleLinear()
             .domain([0, d3.max(data, d => d.Price)])
             .range([innerHeight, 0]);
 
+        // Color Scale: Car Type (Categorical)
         const colorScale = d3.scaleOrdinal(d3.schemeCategory10)
             .domain(data.map(d => d.Type));
 
         // --- 4. AXES ---
+        // Add X Axis
         svg.append("g")
             .attr("transform", `translate(0, ${innerHeight})`)
             .call(d3.axisBottom(xScale));
-
+         
+        // Add X Axis Label    
         svg.append("text")
             .attr("x", innerWidth / 2)
             .attr("y", innerHeight + 40)
             .style("text-anchor", "middle")
             .text("Horsepower (HP)");
 
+        // Add Y Axis  
         svg.append("g")
             .call(d3.axisLeft(yScale));
 
@@ -68,7 +77,7 @@ window.onload = () => {
             .style("text-anchor", "middle")
             .text("Retail Price ($)");
 
-        // --- 5. CIRCLES ---
+        // --- 5. SCATTERPLOT CIRCLES ---
         const circles = svg.selectAll("circle")
             .data(data)
             .enter()
@@ -80,25 +89,31 @@ window.onload = () => {
 
         // --- 6. INTERACTION ---
         circles.on("click", function(d) {
+          // 1. Remove 'selected' class from all other circles
             circles.classed("selected", false);
+            // 2. Add 'selected' class to the clicked circle (keyword 'this' refers to the HTML element)
             d3.select(this).classed("selected", true);
+            // 3. Update the details view (Star Plot)
             updateDetails(d); 
         });
 
         // --- 7. LEGEND ---
+        // Create a small group for the legend on the right side
         const legend = svg.append("g")
             .attr("transform", `translate(${innerWidth + 20}, 0)`);
 
         const types = colorScale.domain();
         types.forEach((type, i) => {
             const row = legend.append("g").attr("transform", `translate(0, ${i * 20})`);
+            //Colored box
             row.append("rect").attr("width", 10).attr("height", 10).attr("fill", colorScale(type));
+            // Text label
             row.append("text").attr("x", 15).attr("y", 10).style("font-size", "12px").text(type);
         });
 
         // --- HELPER: Update Text & Star Plot ---
         function updateDetails(car) {
-            
+            // Clear previous star plot
             // A. UPDATE TEXT DETAILS
             const textContainer = d3.select("#text-details");
             const htmlContent = `
@@ -136,6 +151,7 @@ window.onload = () => {
             ];
             
             // Scales for Star Plot
+            // We need the max value of the ENTIRE dataset for each feature to normalize
             const scales = {};
             starFeatures.forEach(f => {
                 if (f.key === "Type") {
@@ -151,6 +167,7 @@ window.onload = () => {
                 }
             });
 
+            // Calculate angle for each feature slice
             const angleSlice = (Math.PI * 2) / starFeatures.length;
 
             // Draw Axes
